@@ -6,21 +6,27 @@
 #include <cstdint>
 
 class NeuralNet {
-    std::vector<std::vector<Neuron>> _layers;
+    private:
+        uint32_t _batch_size;
+        uint32_t _training_counter;
 
-    double _activation_func(double val);
+        std::vector<std::vector<Neuron>> _layers;
 
-    double _activation_func_derivative(double val);
+        double _activation_func(double val);
+
+        double _activation_func_derivative(double val);
 
     public:
-    void create_net(const std::vector<uint32_t> &topology);
+        void create_net(const std::vector<uint32_t> &topology);
 
-    void fire(const std::vector<double> &inputs);
+        void fire(const std::vector<double> &inputs);
 
-    void get_outputs(std::vector<double> &buffer);
+        void get_outputs(std::vector<double> &buffer);
 
-    double teach(const std::vector<double> &inputs, const std::vector<double> &target, double r);
+        double teach(const std::vector<double> &inputs, const std::vector<double> &target, double r);
 
-    void get_connections(std::vector<double> &inputs);
+        void set_batch_size(uint32_t size);
+
+        void get_connections(std::vector<double> &inputs);
 
 };

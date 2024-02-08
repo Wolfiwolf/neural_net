@@ -37,31 +37,38 @@ void generate_training_set(
 }
 
 void teach_addition(NeuralNet &net) {
-    uint32_t N = 3000000;
-    net.create_net({15, 50, 40, 30, 20, 8});
+    uint32_t N = 2000000;
+    net.create_net({14, 32, 32, 32, 8});
+    net.set_batch_size(1);
+    double learning_rate = 0.0001;
+
     std::vector<std::vector<double>> training_inputs;
     std::vector<std::vector<double>> target_outputs;
     generate_training_set(N, training_inputs, target_outputs);
 
     std::ofstream cost_values("learning_costs.txt");
-    double cost_average = 0;
-    double prev_cost_average = 0;
-    std::cout << "Training...\n";
-    for (uint32_t i = 0; i < N; ++i) {
-        training_inputs[i].push_back(1.0);
-        double cost = net.teach(training_inputs[i], target_outputs[i], 0.02);
+    for (uint32_t epoch = 0; epoch < 1; ++epoch) {
+        std::cout << "Epoch: " << epoch + 1 << "\n";
+        double cost_average = 0;
+        double prev_cost_average = 0;
+        std::cout << "Training...\n";
+        for (uint32_t i = 0; i < N; ++i) {
+            double cost = net.teach(training_inputs[i], target_outputs[i], learning_rate);
 
-        cost_average += cost;
-        if (i % 1000 == 0) {
-            cost_average = cost_average / 1000.0;
-            cost_values << cost_average << "\n";
-            prev_cost_average = cost_average;
-            cost_average = 0;
+            cost_average += cost;
+            if (i % 1000 == 0) {
+                cost_average = cost_average / 1000.0;
+                cost_values << cost_average << "\n";
+                prev_cost_average = cost_average;
+                cost_average = 0;
+                cost_values.flush();
+            }
+
+            printf("%.2f%% (average cost: %.5f)   \r", (i / (double)N) * 100.0, prev_cost_average);
         }
+        printf("%.2f%% (average cost: %.5f)   \n", 100.0, prev_cost_average);
 
-        printf("%.2f%% (average cost: %.5f)   \r", (i / (double)N) * 100.0, prev_cost_average);
     }
-    printf("%.2f%% (average cost: %.5f)   \r", 100.0, prev_cost_average);
     cost_values.close();
 
 
@@ -73,7 +80,6 @@ int add_with_net(NeuralNet &net, uint8_t a, uint8_t b) {
         input_bits.push_back(a & (1 << j) ? 1.0 : 0.0);
     for (uint8_t j = 0; j < 7; j++)
         input_bits.push_back(b & (1 << j) ? 1.0 : 0.0);
-    input_bits.push_back(1);
 
     net.fire(input_bits);
 
@@ -101,7 +107,7 @@ int main() {
         uint8_t a = rand() % 128;
         uint8_t b = rand() % 128;
         uint8_t c = a + b;
-        
+
         uint8_t result = add_with_net(net, a, b);
         printf("%d + %d = %d\t%s\n", a, b, result, a + b == result ? "True" : "False");
 

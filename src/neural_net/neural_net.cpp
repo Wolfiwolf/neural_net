@@ -28,6 +28,19 @@ void NeuralNet::create_net(const std::vector<uint32_t> &topology) {
 
             _layers[_layers.size() - 1].push_back(n);
         }
+        if (layer != 0 && layer != topology.size() - 1) {
+            Neuron n;
+            n.a = 1.0;
+            n.z = 1.0;
+            n.is_bias = true;
+
+            if (layer != 0) {
+                for (uint32_t j = 0; j < _layers[_layers.size() - 2].size(); ++j)
+                    n.connections.push_back(((rand() % 2000) - 1000.0) / 1000.0);
+            }
+
+            _layers[_layers.size() - 1].push_back(n);
+        }
     }
 }
 
@@ -44,11 +57,14 @@ void NeuralNet::fire(const std::vector<double> &inputs) {
 
     for (uint32_t i = 1; i < _layers.size(); ++i) {
         for (Neuron &neuron : _layers[i]) {
+            if (neuron.is_bias) continue;
+
             double z = 0.0;
 
             for (uint32_t j = 0; j < neuron.connections.size(); ++j) {
                 z += _layers[i - 1][j].a * neuron.connections[j];
             }
+
             if (i == _layers.size() - 1) {
                 neuron.z = z;
                 neuron.a = _activation_func(z);
@@ -93,15 +109,33 @@ double NeuralNet::teach(const std::vector<double> &inputs, const std::vector<dou
             double gradient_sum = 0.0;
             for (Neuron &next_n : next_layer) {
                 gradient_sum += _activation_func_derivative(next_n.z) * next_n.connections[n_index] * next_n.gradient;
-                next_n.connections[n_index] -= n.a * _activation_func_derivative(next_n.z) * next_n.gradient * r;
+                if (_training_counter + 1 == _batch_size) {
+                    next_n.connections[n_index] -= n.a * _activation_func_derivative(next_n.z) * next_n.gradient * r;
+                }
             }
-            n.gradient = gradient_sum;
+
+            // n.gradient = gradient_sum;
+            /*
+            */
+            n.average_gradient += gradient_sum;
+            if (_training_counter == _batch_size) {
+                n.gradient = n.average_gradient / (double)_batch_size;
+                n.average_gradient = 0;
+                _training_counter = 0;
+            }
 
             n_index += 1;
         }
     }
 
+    _training_counter += 1;
+
     return cost;
+}
+
+void NeuralNet::set_batch_size(uint32_t size) {
+    _batch_size = size;
+    _training_counter = 0;
 }
 
 double NeuralNet::_activation_func(double val) {
